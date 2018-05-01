@@ -6,11 +6,11 @@ TRY_LOOP="20"
 : "${REDIS_PORT:="6379"}"
 : "${REDIS_PASSWORD:=""}"
 
-: "${POSTGRES_HOST:="postgres"}"
-: "${POSTGRES_PORT:="5432"}"
-: "${POSTGRES_USER:="airflow"}"
-: "${POSTGRES_PASSWORD:="airflow"}"
-: "${POSTGRES_DB:="airflow"}"
+: "${MYSQL_HOST:="mysql-0"}"
+: "${MYSQL_PORT:="3306"}"
+: "${MYSQL_USER:="airflow"}"
+: "${MYSQL_PASSWORD:="airflow"}"
+: "${MYSQL_DB:="airflow"}"
 
 # Defaults and back-compat
 : "${AIRFLOW__CORE__FERNET_KEY:=${FERNET_KEY:=$(python -c "from cryptography.fernet import Fernet; FERNET_KEY = Fernet.generate_key().decode(); print(FERNET_KEY)")}}"
@@ -64,14 +64,15 @@ wait_for_redis() {
   fi
 }
 
-AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
+AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://$MYSQL_USER:$MYSQL_PASSWORD@$MYSQL_HOST:$MYSQL_PORT/$MYSQL_DB"
+AIRFLOW__CORE__SQL_ALCHEMY_CONN="mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DB}"
 AIRFLOW__CELERY__BROKER_URL="redis://$REDIS_PREFIX$REDIS_HOST:$REDIS_PORT/1"
-AIRFLOW__CELERY__CELERY_RESULT_BACKEND="db+postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
+AIRFLOW__CELERY__CELERY_RESULT_BACKEND="db+postgresql://$MYSQL_USER:$MYSQL_PASSWORD@$MYSQL_HOST:$MYSQL_PORT/$MYSQL_DB"
 
 case "$1" in
   webserver)
-    wait_for_port "Postgres" "$POSTGRES_HOST" "$POSTGRES_PORT"
-    wait_for_redis
+    wait_for_port "MySQL" "$MYSQL_HOST" "$MYSQL_PORT"
+    #wait_for_redis
     airflow initdb
     if [ "$AIRFLOW__CORE__EXECUTOR" = "LocalExecutor" ];
     then
@@ -81,7 +82,7 @@ case "$1" in
     exec airflow webserver
     ;;
   worker|scheduler)
-    wait_for_port "Postgres" "$POSTGRES_HOST" "$POSTGRES_PORT"
+    wait_for_port "MySQL" "$MYSQL_HOST" "$MYSQL_PORT"
     wait_for_redis
     # To give the webserver time to run initdb.
     sleep 10
