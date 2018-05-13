@@ -1,19 +1,27 @@
-# VERSION 1.9.0-2
-# AUTHOR: Matthieu "Puckel_" Roisil
-# DESCRIPTION: Basic Airflow container
-# BUILD: docker build --rm -t puckel/docker-airflow .
-# SOURCE: https://github.com/puckel/docker-airflow
+# AUTHOR: Barni S
+# DESCRIPTION: Airflow container
+# derived from pucket/docker-airflow and godatadriven-dockerhub/airflow
+# BUILD: docker build --rm -t barni/docker-airflow .
+# SOURCE: https://github.com/barney-s/docker-airflow
 
 FROM python:3.6-slim
-MAINTAINER Puckel_
+MAINTAINER barney-s
 
 # Never prompts the user for choices on installation/configuration of packages
 ENV DEBIAN_FRONTEND noninteractive
 ENV TERM linux
 
 # Airflow
-ARG AIRFLOW_VERSION=1.9.0
+#ARG AIRFLOW_VERSION=1.9.0
+ARG AIRFLOW_VERSION=master
+ARG AIRFLOW_EXTRAS=async,celery,crypto,jdbc,hdfs,hive,azure,gcp_api,emr,password,postgres,slack,ssh,mysql
+#ARG AIRFLOW_EXTRAS=crypto,celery,postgres,hive,jdbc,mysql
 ARG AIRFLOW_HOME=/usr/local/airflow
+
+# http://label-schema.org/rc1/
+LABEL org.label-schema.name="Apache Airflow ${AIRFLOW_VERSION}" \
+      org.label-schema.url=https://github.com/apache/incubator-airflow \
+      org.label-schema.version=$AIRFLOW_VERSION
 
 # Define en_US.
 ENV LANGUAGE en_US.UTF-8
@@ -21,6 +29,7 @@ ENV LANG en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 ENV LC_CTYPE en_US.UTF-8
 ENV LC_MESSAGES en_US.UTF-8
+
 
 RUN set -ex \
     && buildDeps=' \
@@ -34,6 +43,9 @@ RUN set -ex \
         liblapack-dev \
         libpq-dev \
         git \
+        gcc \
+	g++ \
+	ca-certificates \
     ' \
     && apt-get update -yqq \
     && apt-get upgrade -yqq \
@@ -59,9 +71,16 @@ RUN set -ex \
     && pip install pyOpenSSL \
     && pip install ndg-httpsclient \
     && pip install pyasn1 \
-    && pip install apache-airflow[crypto,celery,postgres,hive,jdbc,mysql]==$AIRFLOW_VERSION \
+    && if [ "$AIRFLOW_VERSION" = "master" ]; then\
+           pip install --no-cache-dir git+https://github.com/apache/incubator-airflow/#egg=apache-airflow[$AIRFLOW_EXTRAS];\
+       elif [ -n "$AIRFLOW_VERSION" ]; then\
+           pip install --no-cache-dir apache-airflow[$AIRFLOW_EXTRAS]==$AIRFLOW_VERSION;\
+       else\
+           pip install --no-cache-dir apache-airflow[$AIRFLOW_EXTRAS];\
+       fi\
     && pip install celery[redis]==4.0.2 \
     && apt-get purge --auto-remove -yqq $buildDeps \
+    && apt-get remove -y --purge gcc g++ git\
     && apt-get autoremove -yqq --purge \
     && apt-get clean \
     && rm -rf \
@@ -72,13 +91,10 @@ RUN set -ex \
         /usr/share/doc \
         /usr/share/doc-base
 
-COPY script/entrypoint.sh /entrypoint.sh
 COPY config/airflow.cfg ${AIRFLOW_HOME}/airflow.cfg
-
+COPY script/entrypoint.sh /entrypoint.sh
 RUN chown -R airflow: ${AIRFLOW_HOME}
-
 EXPOSE 8080 5555 8793
-
 USER airflow
 WORKDIR ${AIRFLOW_HOME}
 ENTRYPOINT ["/entrypoint.sh"]
