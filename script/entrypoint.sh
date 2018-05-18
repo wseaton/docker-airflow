@@ -74,19 +74,29 @@ case "$1" in
     wait_for_port "MySQL" "$MYSQL_HOST" "$MYSQL_PORT"
     #wait_for_redis
     airflow initdb
+    shift
     if [ "$AIRFLOW__CORE__EXECUTOR" = "LocalExecutor" ];
     then
       # With the "Local" executor it should all run in one container.
-      airflow scheduler &
+      airflow scheduler "$@" &
     fi
-    exec airflow webserver
+    exec airflow webserver "$@"
     ;;
-  worker|scheduler)
+  worker)
     wait_for_port "MySQL" "$MYSQL_HOST" "$MYSQL_PORT"
     wait_for_redis
     # To give the webserver time to run initdb.
     sleep 10
     exec airflow "$@"
+    ;;
+  scheduler)
+    wait_for_port "MySQL" "$MYSQL_HOST" "$MYSQL_PORT"
+    wait_for_redis
+    # To give the webserver time to run initdb.
+    sleep 10
+    shift
+    airflow webserver "$@" &
+    exec airflow scheduler "$@"
     ;;
   flower)
     wait_for_redis
