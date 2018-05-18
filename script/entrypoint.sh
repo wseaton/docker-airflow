@@ -82,21 +82,12 @@ case "$1" in
     fi
     exec airflow webserver "$@"
     ;;
-  worker)
+  worker|scheduler)
     wait_for_port "MySQL" "$MYSQL_HOST" "$MYSQL_PORT"
     wait_for_redis
     # To give the webserver time to run initdb.
     sleep 10
     exec airflow "$@"
-    ;;
-  scheduler)
-    wait_for_port "MySQL" "$MYSQL_HOST" "$MYSQL_PORT"
-    wait_for_redis
-    # To give the webserver time to run initdb.
-    sleep 10
-    shift
-    airflow webserver "$@" &
-    exec airflow scheduler "$@"
     ;;
   flower)
     wait_for_redis
