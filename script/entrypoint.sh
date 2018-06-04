@@ -72,20 +72,21 @@ AIRFLOW__CELERY__CELERY_RESULT_BACKEND="db+postgresql://$MYSQL_USER:$MYSQL_PASSW
 case "$1" in
   webserver)
     wait_for_port "MySQL" "$MYSQL_HOST" "$MYSQL_PORT"
-    #wait_for_redis
-    airflow initdb
     shift
-    if [ "$AIRFLOW__CORE__EXECUTOR" = "LocalExecutor" ];
-    then
-      # With the "Local" executor it should all run in one container.
-      airflow scheduler "$@" &
-    fi
+    # To give the scheduler time to run initdb.
+    sleep 10
     exec airflow webserver "$@"
     ;;
-  worker|scheduler)
+  scheduler)
+    wait_for_port "MySQL" "$MYSQL_HOST" "$MYSQL_PORT"
+    airflow initdb
+    wait_for_redis
+    exec airflow "$@"
+    ;;
+  worker)
     wait_for_port "MySQL" "$MYSQL_HOST" "$MYSQL_PORT"
     wait_for_redis
-    # To give the webserver time to run initdb.
+    # To give the scheduler time to run initdb.
     sleep 10
     exec airflow "$@"
     ;;
