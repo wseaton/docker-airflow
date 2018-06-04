@@ -55,7 +55,7 @@ RUN set -ex \
         python3-requests \
         mysql-client \
         mysql-server \
-        libmysqlclient-dev \
+        default-libmysqlclient-dev \
         apt-utils \
         curl \
         rsync \
