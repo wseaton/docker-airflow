@@ -1,11 +1,11 @@
-# VERSION 1.9.0-2
+# VERSION 1.9.0-4
 # AUTHOR: Matthieu "Puckel_" Roisil
 # DESCRIPTION: Basic Airflow container
 # BUILD: docker build --rm -t puckel/docker-airflow .
 # SOURCE: https://github.com/puckel/docker-airflow
 
 FROM python:3.6-slim
-MAINTAINER Puckel_
+LABEL maintainer="Puckel_"
 
 # Never prompts the user for choices on installation/configuration of packages
 ENV DEBIAN_FRONTEND noninteractive
@@ -78,7 +78,7 @@ RUN set -ex \
        else\
            pip install --no-cache-dir apache-airflow[$AIRFLOW_EXTRAS]==$AIRFLOW_VERSION;\
        fi\
-    && pip install celery[redis]==4.0.2 \
+    && pip install celery[redis]==4.1.1 \
     && apt-get purge --auto-remove -yqq $buildDeps \
     && apt-get remove -y --purge gcc g++ git\
     && apt-get autoremove -yqq --purge \
@@ -101,3 +101,4 @@ EXPOSE 8080 5555 8793
 USER airflow
 WORKDIR ${AIRFLOW_HOME}
 ENTRYPOINT ["/entrypoint.sh"]
+CMD ["webserver"] # set default arg for entrypoint

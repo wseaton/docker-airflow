@@ -65,24 +65,21 @@ wait_for_port() {
   done
 }
 
-wait_for_redis() {
-  # Wait for Redis if we are using it
-  if [ "$AIRFLOW__CORE__EXECUTOR" = "CeleryExecutor" ]
-  then
-    wait_for_port "Redis" "$REDIS_HOST" "$REDIS_PORT"
-  fi
-}
-
-AIRFLOW__CELERY__BROKER_URL="redis://$REDIS_PREFIX$REDIS_HOST:$REDIS_PORT/1"
-
-if [ "$DB_TYPE" = "mysql" ];then
-  AIRFLOW__CORE__SQL_ALCHEMY_CONN="mysql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
-  AIRFLOW__CELERY__RESULT_BACKEND="db+mysql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
-else
-  AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
-  AIRFLOW__CELERY__RESULT_BACKEND="db+postgresql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
+if [ "$AIRFLOW__CORE__EXECUTOR" = "CeleryExecutor" ]; then
+  AIRFLOW__CELERY__BROKER_URL="redis://$REDIS_PREFIX$REDIS_HOST:$REDIS_PORT/1"
+  wait_for_port "Redis" "$REDIS_HOST" "$REDIS_PORT"
 fi
-wait_for_port "$DB_TYPE" "$SQL_HOST" "$SQL_PORT"
+
+if [ "$AIRFLOW__CORE__EXECUTOR" != "SequentialExecutor" ]; then
+  if [ "$DB_TYPE" = "mysql" ];then
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN="mysql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
+    AIRFLOW__CELERY__RESULT_BACKEND="db+mysql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
+  else
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
+    AIRFLOW__CELERY__RESULT_BACKEND="db+postgresql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
+  fi
+  wait_for_port "$DB_TYPE" "$SQL_HOST" "$SQL_PORT"
+fi
 
 case "$1" in
   webserver)
@@ -93,17 +90,18 @@ case "$1" in
     ;;
   scheduler)
     airflow initdb
-    wait_for_redis
+    if [ "$AIRFLOW__CORE__EXECUTOR" = "LocalExecutor" ]; then
+      # With the "Local" executor it should all run in one container.
+      airflow webserver &
+    fi
     exec airflow "$@"
     ;;
   worker)
-    wait_for_redis
     # To give the scheduler time to run initdb.
     sleep 10
     exec airflow "$@"
     ;;
   flower)
-    wait_for_redis
     exec airflow "$@"
     ;;
   version)
