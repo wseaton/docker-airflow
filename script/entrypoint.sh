@@ -65,11 +65,6 @@ wait_for_port() {
   done
 }
 
-if [ "$AIRFLOW__CORE__EXECUTOR" = "CeleryExecutor" ]; then
-  AIRFLOW__CELERY__BROKER_URL="redis://$REDIS_PREFIX$REDIS_HOST:$REDIS_PORT/1"
-  wait_for_port "Redis" "$REDIS_HOST" "$REDIS_PORT"
-fi
-
 if [ "$AIRFLOW__CORE__EXECUTOR" != "SequentialExecutor" ]; then
   if [ "$DB_TYPE" = "mysql" ];then
     AIRFLOW__CORE__SQL_ALCHEMY_CONN="mysql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
@@ -81,12 +76,17 @@ if [ "$AIRFLOW__CORE__EXECUTOR" != "SequentialExecutor" ]; then
   wait_for_port "$DB_TYPE" "$SQL_HOST" "$SQL_PORT"
 fi
 
+if [ "$AIRFLOW__CORE__EXECUTOR" = "CeleryExecutor" ]; then
+  AIRFLOW__CELERY__BROKER_URL="redis://$REDIS_PREFIX$REDIS_HOST:$REDIS_PORT/1"
+  wait_for_port "Redis" "$REDIS_HOST" "$REDIS_PORT"
+fi
+
 case "$1" in
   webserver)
     shift
     # To give the scheduler time to run initdb.
     sleep 10
-    exec airflow webserver "$@"
+    exec airflow "$@"
     ;;
   scheduler)
     airflow initdb
