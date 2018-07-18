@@ -39,7 +39,7 @@ RUN set -ex \
         libssl-dev \
         libffi-dev \
         build-essential \
-        libblas-dev AIRFLOW_VERSION=\
+        libblas-dev \
         liblapack-dev \
         libpq-dev \
         git \
