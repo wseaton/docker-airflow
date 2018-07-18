@@ -1,0 +1,6 @@
+# Google Cloud Build script
+#
+
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/airflow-operator/airflow:1.10.0rc2', '--build-arg', 'INSTALL_FROM=source', '--build-arg', 'AIRFLOW_VERSION=1.10.0rc2', '.']

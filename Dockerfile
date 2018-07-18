@@ -1,21 +1,21 @@
-# AUTHOR: Barni S
-# DESCRIPTION: Airflow container
-# derived from pucket/docker-airflow and godatadriven-dockerhub/airflow
-# BUILD: docker build --rm -t barni/docker-airflow .
-# SOURCE: https://github.com/barney-s/docker-airflow
+# VERSION 1.9.0-2
+# AUTHOR: Matthieu "Puckel_" Roisil
+# DESCRIPTION: Basic Airflow container
+# BUILD: docker build --rm -t puckel/docker-airflow .
+# SOURCE: https://github.com/puckel/docker-airflow
 
 FROM python:3.6-slim
-MAINTAINER barney-s
+MAINTAINER Puckel_
 
 # Never prompts the user for choices on installation/configuration of packages
 ENV DEBIAN_FRONTEND noninteractive
 ENV TERM linux
 
 # Airflow
-#ARG AIRFLOW_VERSION=1.9.0
-ARG AIRFLOW_VERSION=master
+# install from source|pip ?
+ARG INSTALL_FROM=pip
+ARG AIRFLOW_VERSION=1.9.0
 ARG AIRFLOW_EXTRAS=async,celery,crypto,jdbc,hdfs,hive,azure,gcp_api,emr,password,postgres,slack,ssh,mysql
-#ARG AIRFLOW_EXTRAS=crypto,celery,postgres,hive,jdbc,mysql
 ARG AIRFLOW_HOME=/usr/local/airflow
 
 # http://label-schema.org/rc1/
@@ -39,7 +39,7 @@ RUN set -ex \
         libssl-dev \
         libffi-dev \
         build-essential \
-        libblas-dev \
+        libblas-dev AIRFLOW_VERSION=\
         liblapack-dev \
         libpq-dev \
         git \
@@ -73,12 +73,10 @@ RUN set -ex \
     && pip install pyOpenSSL \
     && pip install ndg-httpsclient \
     && pip install pyasn1 \
-    && if [ "$AIRFLOW_VERSION" = "master" ]; then\
-           pip install --no-cache-dir git+https://github.com/apache/incubator-airflow/#egg=apache-airflow[$AIRFLOW_EXTRAS];\
-       elif [ -n "$AIRFLOW_VERSION" ]; then\
-           pip install --no-cache-dir apache-airflow[$AIRFLOW_EXTRAS]==$AIRFLOW_VERSION;\
+    && if [ "$INSTALL_FROM" = "source" ]; then\
+           pip install --no-cache-dir git+https://github.com/apache/incubator-airflow@${AIRFLOW_VERSION}#egg=apache-airflow[$AIRFLOW_EXTRAS];\
        else\
-           pip install --no-cache-dir apache-airflow[$AIRFLOW_EXTRAS];\
+           pip install --no-cache-dir apache-airflow[$AIRFLOW_EXTRAS]==$AIRFLOW_VERSION;\
        fi\
     && pip install celery[redis]==4.0.2 \
     && apt-get purge --auto-remove -yqq $buildDeps \
@@ -93,10 +91,13 @@ RUN set -ex \
         /usr/share/doc \
         /usr/share/doc-base
 
-COPY config/airflow.cfg ${AIRFLOW_HOME}/airflow.cfg
 COPY script/entrypoint.sh /entrypoint.sh
+COPY config/airflow.cfg ${AIRFLOW_HOME}/airflow.cfg
+
 RUN chown -R airflow: ${AIRFLOW_HOME}
+
 EXPOSE 8080 5555 8793
+
 USER airflow
 WORKDIR ${AIRFLOW_HOME}
 ENTRYPOINT ["/entrypoint.sh"]
