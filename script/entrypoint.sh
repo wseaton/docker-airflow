@@ -83,7 +83,6 @@ fi
 
 case "$1" in
   webserver)
-    shift
     # To give the scheduler time to run initdb.
     sleep 10
     exec airflow "$@"
