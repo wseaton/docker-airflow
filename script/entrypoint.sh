@@ -6,11 +6,20 @@ TRY_LOOP="20"
 : "${REDIS_PORT:="6379"}"
 : "${REDIS_PASSWORD:=""}"
 
-: "${POSTGRES_HOST:="postgres"}"
-: "${POSTGRES_PORT:="5432"}"
-: "${POSTGRES_USER:="airflow"}"
-: "${POSTGRES_PASSWORD:="airflow"}"
-: "${POSTGRES_DB:="airflow"}"
+: "${DB_TYPE:="postgres"}"
+if [ "$DB_TYPE" = "mysql" ];then
+: "${SQL_HOST:="mysql"}"
+: "${SQL_PORT:="3306"}"
+: "${SQL_USER:="airflow"}"
+: "${SQL_PASSWORD:="airflow"}"
+: "${SQL_DB:="airflow"}"
+else
+ : "${SQL_HOST:="postgres"}"
+ : "${SQL_PORT:="5432"}"
+ : "${SQL_USER:="airflow"}"
+ : "${SQL_PASSWORD:="airflow"}"
+ : "${SQL_DB:="airflow"}"
+fi
 
 # Defaults and back-compat
 : "${AIRFLOW__CORE__FERNET_KEY:=${FERNET_KEY:=$(python -c "from cryptography.fernet import Fernet; FERNET_KEY = Fernet.generate_key().decode(); print(FERNET_KEY)")}}"
@@ -45,7 +54,7 @@ fi
 wait_for_port() {
   local name="$1" host="$2" port="$3"
   local j=0
-  while ! nc -z "$host" "$port" >/dev/null 2>&1 < /dev/null; do
+  while ! timeout 3 nc -z "$host" "$port" >/dev/null 2>&1 < /dev/null; do
     j=$((j+1))
     if [ $j -ge $TRY_LOOP ]; then
       echo >&2 "$(date) - $host:$port still not reachable, giving up"
@@ -57,9 +66,14 @@ wait_for_port() {
 }
 
 if [ "$AIRFLOW__CORE__EXECUTOR" != "SequentialExecutor" ]; then
-  AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
-  AIRFLOW__CELERY__RESULT_BACKEND="db+postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
-  wait_for_port "Postgres" "$POSTGRES_HOST" "$POSTGRES_PORT"
+  if [ "$DB_TYPE" = "mysql" ];then
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN="mysql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
+    AIRFLOW__CELERY__RESULT_BACKEND="db+mysql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
+  else
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
+    AIRFLOW__CELERY__RESULT_BACKEND="db+postgresql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
+  fi
+  wait_for_port "$DB_TYPE" "$SQL_HOST" "$SQL_PORT"
 fi
 
 if [ "$AIRFLOW__CORE__EXECUTOR" = "CeleryExecutor" ]; then
@@ -69,15 +83,20 @@ fi
 
 case "$1" in
   webserver)
+    # To give the scheduler time to run initdb.
+    sleep 10
+    exec airflow "$@"
+    ;;
+  scheduler)
     airflow initdb
     if [ "$AIRFLOW__CORE__EXECUTOR" = "LocalExecutor" ]; then
       # With the "Local" executor it should all run in one container.
-      airflow scheduler &
+      airflow webserver &
     fi
-    exec airflow webserver
+    exec airflow "$@"
     ;;
-  worker|scheduler)
-    # To give the webserver time to run initdb.
+  worker)
+    # To give the scheduler time to run initdb.
     sleep 10
     exec airflow "$@"
     ;;
