@@ -27,7 +27,7 @@ fi
 
 export \
   AIRFLOW__CELERY__BROKER_URL \
-  AIRFLOW__CELERY__CELERY_RESULT_BACKEND \
+  AIRFLOW__CELERY__RESULT_BACKEND \
   AIRFLOW__CORE__EXECUTOR \
   AIRFLOW__CORE__FERNET_KEY \
   AIRFLOW__CORE__LOAD_EXAMPLES \
@@ -101,6 +101,7 @@ case "$1" in
     exec airflow "$@"
     ;;
   flower)
+    sleep 10
     exec airflow "$@"
     ;;
   version)

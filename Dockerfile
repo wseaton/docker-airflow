@@ -1,4 +1,4 @@
-# VERSION 1.9.0-4
+# VERSION 1.10.1
 # AUTHOR: Matthieu "Puckel_" Roisil
 # DESCRIPTION: Basic Airflow container
 # BUILD: docker build --rm -t puckel/docker-airflow .
@@ -14,9 +14,12 @@ ENV TERM linux
 # Airflow
 # install from source|pip ?
 ARG INSTALL_FROM=pip
-ARG AIRFLOW_VERSION=1.9.0
+ARG AIRFLOW_VERSION=1.10.1
 ARG AIRFLOW_EXTRAS=async,celery,crypto,jdbc,hdfs,hive,azure,gcp_api,emr,password,postgres,slack,ssh,mysql
 ARG AIRFLOW_HOME=/usr/local/airflow
+ARG AIRFLOW_DEPS=""
+ARG PYTHON_DEPS=""
+ENV AIRFLOW_GPL_UNIDECODE yes
 
 # http://label-schema.org/rc1/
 LABEL org.label-schema.name="Apache Airflow ${AIRFLOW_VERSION}" \
@@ -32,14 +35,11 @@ ENV LC_MESSAGES en_US.UTF-8
 
 RUN set -ex \
     && buildDeps=' \
-        python3-dev \
+        freetds-dev \
         libkrb5-dev \
         libsasl2-dev \
         libssl-dev \
         libffi-dev \
-        build-essential \
-        libblas-dev \
-        liblapack-dev \
         libpq-dev \
         git \
         gcc \
@@ -50,10 +50,8 @@ RUN set -ex \
     && apt-get upgrade -yqq \
     && apt-get install -yqq --no-install-recommends \
         $buildDeps \
-        python3-pip \
-        python3-requests \
-        mysql-client \
-        mysql-server \
+        freetds-bin \
+        build-essential \
         default-libmysqlclient-dev \
         apt-utils \
         curl \
@@ -77,7 +75,8 @@ RUN set -ex \
        else\
            pip install --no-cache-dir apache-airflow[$AIRFLOW_EXTRAS]==$AIRFLOW_VERSION;\
        fi\
-    && pip install celery[redis]==4.1.1 \
+    && pip install 'redis>=2.10.5,<3' \
+    && if [ -n "${PYTHON_DEPS}" ]; then pip install ${PYTHON_DEPS}; fi \
     && apt-get purge --auto-remove -yqq $buildDeps \
     && apt-get remove -y --purge gcc g++ git\
     && apt-get autoremove -yqq --purge \
