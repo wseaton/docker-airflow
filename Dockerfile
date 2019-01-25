@@ -1,4 +1,4 @@
-# VERSION 1.10.1
+# VERSION 1.10.2
 # AUTHOR: Matthieu "Puckel_" Roisil
 # DESCRIPTION: Basic Airflow container
 # BUILD: docker build --rm -t puckel/docker-airflow .
@@ -14,7 +14,7 @@ ENV TERM linux
 # Airflow
 # install from source|pip ?
 ARG INSTALL_FROM=pip
-ARG AIRFLOW_VERSION=1.10.1
+ARG AIRFLOW_VERSION=1.10.2
 ARG AIRFLOW_EXTRAS=async,celery,crypto,jdbc,hdfs,hive,azure,gcp_api,emr,password,postgres,slack,ssh,mysql
 ARG AIRFLOW_HOME=/usr/local/airflow
 ARG AIRFLOW_DEPS=""
