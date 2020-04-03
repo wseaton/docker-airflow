@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+set -x
 TRY_LOOP="20"
 
 : "${REDIS_HOST:="redis"}"
@@ -14,7 +14,7 @@ if [ "$DB_TYPE" = "mysql" ];then
 : "${SQL_PASSWORD:="airflow"}"
 : "${SQL_DB:="airflow"}"
 else
- : "${SQL_HOST:="postgres"}"
+ : "${SQL_HOST:="pc-base-sql"}"
  : "${SQL_PORT:="5432"}"
  : "${SQL_USER:="airflow"}"
  : "${SQL_PASSWORD:="airflow"}"
@@ -22,7 +22,7 @@ else
 fi
 
 # Defaults and back-compat
-: "${AIRFLOW__CORE__FERNET_KEY:=${FERNET_KEY:=$(python -c "from cryptography.fernet import Fernet; FERNET_KEY = Fernet.generate_key().decode(); print(FERNET_KEY)")}}"
+: "${AIRFLOW__CORE__FERNET_KEY:=${FERNET_KEY:=DlMltFwFwXlvp9SGh27VQ_nCkCm6-0wugA2Tb-YVgr8=}}"
 : "${AIRFLOW__CORE__EXECUTOR:=${EXECUTOR:-Sequential}Executor}"
 
 export \
@@ -34,10 +34,11 @@ export \
   AIRFLOW__CORE__SQL_ALCHEMY_CONN \
 
 
+
 # Load DAGs exemples (default: Yes)
 if [[ -z "$AIRFLOW__CORE__LOAD_EXAMPLES" && "${LOAD_EX:=n}" == n ]]
 then
-  AIRFLOW__CORE__LOAD_EXAMPLES=False
+  AIRFLOW__CORE__LOAD_EXAMPLES = True
 fi
 
 # Install custom python package if requirements.txt is present
@@ -75,6 +76,7 @@ if [ "$AIRFLOW__CORE__EXECUTOR" != "SequentialExecutor" ]; then
   fi
   wait_for_port "$DB_TYPE" "$SQL_HOST" "$SQL_PORT"
 fi
+echo "export AIRFLOW__CORE__SQL_ALCHEMY_CONN=${AIRFLOW__CORE__SQL_ALCHEMY_CONN}" >> ~/.profile
 
 if [ "$AIRFLOW__CORE__EXECUTOR" = "CeleryExecutor" ]; then
   AIRFLOW__CELERY__BROKER_URL="redis://$REDIS_PREFIX$REDIS_HOST:$REDIS_PORT/1"
@@ -83,12 +85,12 @@ fi
 
 case "$1" in
   webserver)
+    airflow initdb
     # To give the scheduler time to run initdb.
-    sleep 10
+    sleep 20
     exec airflow "$@"
     ;;
   scheduler)
-    airflow initdb
     if [ "$AIRFLOW__CORE__EXECUTOR" = "LocalExecutor" ]; then
       # With the "Local" executor it should all run in one container.
       airflow webserver &
@@ -97,7 +99,7 @@ case "$1" in
     ;;
   worker)
     # To give the scheduler time to run initdb.
-    sleep 10
+    sleep 20
     exec airflow "$@"
     ;;
   flower)
