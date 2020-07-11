@@ -32,6 +32,7 @@ export \
   AIRFLOW__CORE__FERNET_KEY \
   AIRFLOW__CORE__LOAD_EXAMPLES \
   AIRFLOW__CORE__SQL_ALCHEMY_CONN \
+  C_FORCE_ROOT
 
 
 
@@ -81,6 +82,8 @@ echo "export AIRFLOW__CORE__SQL_ALCHEMY_CONN=${AIRFLOW__CORE__SQL_ALCHEMY_CONN}"
 if [ "$AIRFLOW__CORE__EXECUTOR" = "CeleryExecutor" ]; then
   AIRFLOW__CELERY__BROKER_URL="redis://$REDIS_PREFIX$REDIS_HOST:$REDIS_PORT/1"
   wait_for_port "Redis" "$REDIS_HOST" "$REDIS_PORT"
+  # Celery worker refuses to run when executed as gid=0 egid=0 on OpenShift. Set C_FORCE_ROOT to override the check.
+  C_FORCE_ROOT=True
 fi
 
 case "$1" in
