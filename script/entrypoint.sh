@@ -88,7 +88,7 @@ fi
 
 case "$1" in
   webserver)
-    airflow initdb
+    airflow upgradedb
     # To give the scheduler time to run initdb.
     sleep 20
     exec airflow "$@"
