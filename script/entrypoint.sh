@@ -89,8 +89,6 @@ fi
 case "$1" in
   webserver)
     airflow upgradedb
-    # To give the scheduler time to run initdb.
-    sleep 20
     exec airflow "$@"
     ;;
   scheduler)
@@ -98,10 +96,12 @@ case "$1" in
       # With the "Local" executor it should all run in one container.
       airflow webserver &
     fi
+    # To give the webserver time to run initdb.
+    sleep 20
     exec airflow "$@"
     ;;
   worker)
-    # To give the scheduler time to run initdb.
+    # To give the webserver time to run initdb.
     sleep 20
     exec airflow "$@"
     ;;
