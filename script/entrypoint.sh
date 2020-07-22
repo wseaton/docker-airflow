@@ -14,7 +14,7 @@ if [ "$DB_TYPE" = "mysql" ];then
 : "${SQL_PASSWORD:="airflow"}"
 : "${SQL_DB:="airflow"}"
 else
- : "${SQL_HOST:="pc-base-sql"}"
+ : "${SQL_HOST:="postgres"}"
  : "${SQL_PORT:="5432"}"
  : "${SQL_USER:="airflow"}"
  : "${SQL_PASSWORD:="airflow"}"
@@ -89,19 +89,19 @@ fi
 case "$1" in
   webserver)
     airflow upgradedb
+    if [ "$AIRFLOW__CORE__EXECUTOR" = "LocalExecutor" ]; then
+      # With the "Local" executor it should all run in one container.
+      airflow scheduler &
+    fi
     exec airflow "$@"
     ;;
   scheduler)
-    if [ "$AIRFLOW__CORE__EXECUTOR" = "LocalExecutor" ]; then
-      # With the "Local" executor it should all run in one container.
-      airflow webserver &
-    fi
-    # To give the webserver time to run initdb.
+    # To give the webserver time to run upgradedb.
     sleep 20
     exec airflow "$@"
     ;;
   worker)
-    # To give the webserver time to run initdb.
+    # To give the webserver time to run upgradedb.
     sleep 20
     exec airflow "$@"
     ;;
