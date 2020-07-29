@@ -14,7 +14,7 @@ if [ "$DB_TYPE" = "mysql" ];then
 : "${SQL_PASSWORD:="airflow"}"
 : "${SQL_DB:="airflow"}"
 else
- : "${SQL_HOST:="pc-base-sql"}"
+ : "${SQL_HOST:="postgres"}"
  : "${SQL_PORT:="5432"}"
  : "${SQL_USER:="airflow"}"
  : "${SQL_PASSWORD:="airflow"}"
@@ -32,13 +32,14 @@ export \
   AIRFLOW__CORE__FERNET_KEY \
   AIRFLOW__CORE__LOAD_EXAMPLES \
   AIRFLOW__CORE__SQL_ALCHEMY_CONN \
+  C_FORCE_ROOT
 
 
 
 # Load DAGs exemples (default: Yes)
 if [[ -z "$AIRFLOW__CORE__LOAD_EXAMPLES" && "${LOAD_EX:=n}" == n ]]
 then
-  AIRFLOW__CORE__LOAD_EXAMPLES = False
+  AIRFLOW__CORE__LOAD_EXAMPLES=False
 fi
 
 # Install custom python package if requirements.txt is present
@@ -81,24 +82,26 @@ echo "export AIRFLOW__CORE__SQL_ALCHEMY_CONN=${AIRFLOW__CORE__SQL_ALCHEMY_CONN}"
 if [ "$AIRFLOW__CORE__EXECUTOR" = "CeleryExecutor" ]; then
   AIRFLOW__CELERY__BROKER_URL="redis://$REDIS_PREFIX$REDIS_HOST:$REDIS_PORT/1"
   wait_for_port "Redis" "$REDIS_HOST" "$REDIS_PORT"
+  # Celery worker refuses to run when executed as gid=0 egid=0 on OpenShift. Set C_FORCE_ROOT to override the check.
+  C_FORCE_ROOT=True
 fi
 
 case "$1" in
   webserver)
-    airflow initdb
-    # To give the scheduler time to run initdb.
-    sleep 20
-    exec airflow "$@"
-    ;;
-  scheduler)
+    airflow upgradedb
     if [ "$AIRFLOW__CORE__EXECUTOR" = "LocalExecutor" ]; then
       # With the "Local" executor it should all run in one container.
-      airflow webserver &
+      airflow scheduler &
     fi
     exec airflow "$@"
     ;;
+  scheduler)
+    # To give the webserver time to run upgradedb.
+    sleep 20
+    exec airflow "$@"
+    ;;
   worker)
-    # To give the scheduler time to run initdb.
+    # To give the webserver time to run upgradedb.
     sleep 20
     exec airflow "$@"
     ;;
