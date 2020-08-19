@@ -63,8 +63,12 @@ RUN set -ex \
         ndg-httpsclient \
         pyasn1 \
         apache-airflow[crypto,celery,postgres,hive,jdbc,mysql,ssh${AIRFLOW_DEPS:+,}${AIRFLOW_DEPS}]==${AIRFLOW_VERSION} \
-        'kubernetes==11.0.0' \
-        'redis==3.2' \
+        oauthlib==2.1.0 \
+        requests-oauthlib==1.1.0 \
+        Flask-OAuthlib==0.9.5 \
+        kubernetes==11.0.0 \
+        openshift==0.11.2 \
+        redis==3.2 \
     && if [ -n "${PYTHON_DEPS}" ]; then pip install ${PYTHON_DEPS}; fi \
     && apt-get purge --auto-remove -yqq $buildDeps \
     && apt-get autoremove -yqq --purge \
