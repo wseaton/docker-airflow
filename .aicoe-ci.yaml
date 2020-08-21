@@ -1,0 +1,8 @@
+check:
+  - thoth-build
+build:
+  build-stratergy: "Dockerfile"
+  registry: "quay.io"
+  registry-org: "opendatahub"
+  registry-project: "docker-airflow"
+  registry-secret: "opendatahub-thoth-pusher-secret"
