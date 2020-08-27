@@ -12,7 +12,7 @@ services:
                 max-file: "3"
 
     webserver:
-        image: quay.io/opendatahub/docker-airflow:1.10.11
+        image: quay.io/opendatahub/docker-airflow:1.10.12
         restart: always
         depends_on:
             - postgres
