@@ -84,6 +84,8 @@ configure_auth() {
     # It allows Airflow to connect to the openshift.default.svc.cluster.local and oauth-openshift.apps.<cluster_domain>
     # endpoints while executing the OAuth authorization code flow.
     import_ca_certs /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    # Generate webserver_config.py file that contains the user authentication configuration
+    /configure_auth.py || exit 1
   fi
 }
 

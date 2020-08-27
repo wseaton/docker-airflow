@@ -82,6 +82,7 @@ RUN set -ex \
         /usr/share/doc-base
 
 COPY script/entrypoint.sh /entrypoint.sh
+COPY script/configure_auth.py /configure_auth.py
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 
 COPY patch/flash_appbuilder.patch /tmp
