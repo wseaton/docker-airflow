@@ -1,0 +1,20 @@
+diff --git a/flask_appbuilder/security/manager.py b/flask_appbuilder/security/manager.py
+index e2b361c9..a454d8c6 100644
+--- a/flask_appbuilder/security/manager.py
++++ b/flask_appbuilder/security/manager.py
+@@ -553,6 +553,15 @@ class BaseSecurityManager(AbstractSecurityManager):
+                 "id": me["oid"],
+                 "username": me["oid"],
+             }
++        if provider == "openshift":
++            me = self.appbuilder.sm.oauth_remotes[provider].get(
++                "apis/user.openshift.io/v1/users/~"
++            )
++            data = me.data
++            log.debug("User info from OpenShift: {0}".format(data))
++            return {
++                "username": "openshift_" + data.get("metadata").get("name")
++            }
+         else:
+             return {}
+

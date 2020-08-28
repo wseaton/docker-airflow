@@ -84,6 +84,11 @@ RUN set -ex \
 COPY script/entrypoint.sh /entrypoint.sh
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 
+COPY patch/flash_appbuilder.patch /tmp
+RUN cd /usr/local/lib/python3.7/site-packages \
+    && patch -p1 </tmp/flash_appbuilder.patch \
+    && rm /tmp/flash_appbuilder.patch
+
 RUN chown -R airflow: ${AIRFLOW_USER_HOME}
 RUN chgrp -R 0 ${AIRFLOW_USER_HOME} && chmod -R g+rwX ${AIRFLOW_USER_HOME}
 RUN chmod g+w /etc/ssl/certs
