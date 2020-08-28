@@ -67,6 +67,26 @@ wait_for_port() {
   done
 }
 
+import_ca_certs() {
+  local bundle="$1"
+  if [ -e "$bundle" ]; then
+    local tmpdir=$(mktemp -d)
+    # Break the CA bundle into individual cert files
+    awk "BEGIN {c=0;} /BEGIN CERT/{c++} { print > \"$tmpdir/cert.\" c \".crt\"}" < "$bundle"
+    # Add the certs to the trust store
+    update-ca-certificates --localcertsdir $tmpdir || exit 1
+  fi
+}
+
+configure_auth() {
+  if [ "$AUTH_TYPE" = openshift ]; then
+    # Import Kubernetes certificates into trust store. This is required for the login with OpenShift to work.
+    # It allows Airflow to connect to the openshift.default.svc.cluster.local and oauth-openshift.apps.<cluster_domain>
+    # endpoints while executing the OAuth authorization code flow.
+    import_ca_certs /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+  fi
+}
+
 if [ "$AIRFLOW__CORE__EXECUTOR" != "SequentialExecutor" ]; then
   if [ "$DB_TYPE" = "mysql" ];then
     AIRFLOW__CORE__SQL_ALCHEMY_CONN="mysql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
@@ -93,6 +113,7 @@ case "$1" in
       # With the "Local" executor it should all run in one container.
       airflow scheduler &
     fi
+    configure_auth
     exec airflow "$@"
     ;;
   scheduler)
