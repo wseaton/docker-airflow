@@ -85,10 +85,10 @@ COPY script/entrypoint.sh /entrypoint.sh
 COPY script/configure_auth.py /configure_auth.py
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 
-COPY patch/flash_appbuilder.patch /tmp
+COPY patch/flask_appbuilder.patch /tmp
 RUN cd /usr/local/lib/python3.7/site-packages \
-    && patch -p1 </tmp/flash_appbuilder.patch \
-    && rm /tmp/flash_appbuilder.patch
+    && patch -p1 </tmp/flask_appbuilder.patch \
+    && rm /tmp/flask_appbuilder.patch
 
 RUN chown -R airflow: ${AIRFLOW_USER_HOME}
 RUN chgrp -R 0 ${AIRFLOW_USER_HOME} && chmod -R g+rwX ${AIRFLOW_USER_HOME}
