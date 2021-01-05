@@ -1,4 +1,4 @@
-# VERSION 1.10.11
+# VERSION 1.10.12
 # AUTHOR: Matthieu "Puckel_" Roisil
 # DESCRIPTION: Basic Airflow container
 # BUILD: docker build --rm -t puckel/docker-airflow .
@@ -12,7 +12,7 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV TERM linux
 
 # Airflow
-ARG AIRFLOW_VERSION=1.10.11
+ARG AIRFLOW_VERSION=1.10.12
 ARG AIRFLOW_USER_HOME=/usr/local/airflow
 ARG AIRFLOW_DEPS=""
 ARG PYTHON_DEPS=""
@@ -56,14 +56,19 @@ RUN set -ex \
     && locale-gen \
     && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
     && useradd -ms /bin/bash -d ${AIRFLOW_USER_HOME} airflow \
-    && pip install -U pip setuptools wheel \
-    && pip install pytz \
-    && pip install pyOpenSSL \
-    && pip install ndg-httpsclient \
-    && pip install pyasn1 \
-    && pip install apache-airflow[crypto,celery,postgres,hive,jdbc,mysql,ssh${AIRFLOW_DEPS:+,}${AIRFLOW_DEPS}]==${AIRFLOW_VERSION} \
-    && pip install 'kubernetes==11.0.0' \
-    && pip install 'redis==3.2' \
+    && pip install --no-cache-dir -U pip setuptools wheel \
+    && pip install --no-cache-dir \
+        pytz \
+        pyOpenSSL \
+        ndg-httpsclient \
+        pyasn1 \
+        apache-airflow[crypto,celery,postgres,hive,jdbc,mysql,ssh${AIRFLOW_DEPS:+,}${AIRFLOW_DEPS}]==${AIRFLOW_VERSION} \
+        oauthlib==2.1.0 \
+        requests-oauthlib==1.1.0 \
+        Flask-OAuthlib==0.9.5 \
+        kubernetes==11.0.0 \
+        openshift==0.11.2 \
+        redis==3.2 \
     && if [ -n "${PYTHON_DEPS}" ]; then pip install ${PYTHON_DEPS}; fi \
     && apt-get purge --auto-remove -yqq $buildDeps \
     && apt-get autoremove -yqq --purge \
@@ -77,10 +82,17 @@ RUN set -ex \
         /usr/share/doc-base
 
 COPY script/entrypoint.sh /entrypoint.sh
+COPY script/configure_auth.py /configure_auth.py
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
+
+COPY patch/flask_appbuilder.patch /tmp
+RUN cd /usr/local/lib/python3.7/site-packages \
+    && patch -p1 </tmp/flask_appbuilder.patch \
+    && rm /tmp/flask_appbuilder.patch
 
 RUN chown -R airflow: ${AIRFLOW_USER_HOME}
 RUN chgrp -R 0 ${AIRFLOW_USER_HOME} && chmod -R g+rwX ${AIRFLOW_USER_HOME}
+RUN chmod g+w /etc/ssl/certs
 
 EXPOSE 8080 5555 8793
 
