@@ -16,6 +16,7 @@ if auth_type != "openshift":
     sys.exit(0)
 
 openshift_oauth_config_template = string.Template("""
+from airflow.www_rbac.security import AirflowSecurityManager
 from flask_appbuilder.security.manager import AUTH_OAUTH
 AUTH_TYPE = AUTH_OAUTH
 OAUTH_PROVIDERS = [
@@ -39,6 +40,43 @@ OAUTH_PROVIDERS = [
 
 AUTH_USER_REGISTRATION = True
 $auth_user_registration_role
+
+from base64 import b64decode
+
+import ldap
+from ldap.dn import str2dn, explode_dn
+
+def get_email_from_identity(identity: str) -> str:
+    
+    provider, info = identity.split(':')
+
+    if provider == "LDAP":
+        info = b64decode(info).decode('utf-8')
+        dn = explode_dn(info, flags=ldap.DN_FORMAT_LDAPV3)
+        email = "{0}@{2}.{3}".format(*[x.split('=')[-1] for x in dn])
+    else:
+        return ""
+
+    return email
+
+from airflow.www_rbac.app import appbuilder
+
+class OpenShiftSecurity(AirflowSecurityManager):
+    def oauth_user_info(self, provider, response=None):
+        if provider == "openshift":
+            me = self.appbuilder.sm.oauth_remotes[provider].get(
+                "apis/user.openshift.io/v1/users/~"
+            )
+            data = me.data
+            print("User info from OCP: {0}".format(data))
+            return {
+                "username": "openshift_" + data.get("metadata").get("name"),
+                "email" : get_email_from_identity(data.get("identities")[0]) 
+            }
+        else:
+            return {}
+
+SECURITY_MANAGER_CLASS = OpenShiftSecurity 
 """)
 
 def generate_openshift_oauth_config():
