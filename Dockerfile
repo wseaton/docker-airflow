@@ -38,6 +38,7 @@ RUN set -ex \
         libssl-dev \
         libffi-dev \
         libpq-dev \
+        libldap2-dev \
         git \
     ' \
     && apt-get update -yqq \
@@ -58,6 +59,7 @@ RUN set -ex \
     && useradd -ms /bin/bash -d ${AIRFLOW_USER_HOME} airflow \
     && pip install --no-cache-dir -U pip setuptools wheel \
     && pip install --no-cache-dir \
+        python-ldap \
         pytz \
         pyOpenSSL \
         ndg-httpsclient \
