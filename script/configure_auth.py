@@ -51,7 +51,10 @@ def get_email_from_identity(identity: str) -> str:
     provider, info = identity.split(':')
 
     if provider == "LDAP":
-        info = b64decode(info).decode('utf-8')
+        # openshift doesn't pad b64 in transport, so we must
+        code_with_padding = f"{info}{'=' * ((4 - len(info) % 4) % 4)}"
+
+        info = b64decode(code_with_padding).decode('utf-8')
         dn = explode_dn(info, flags=ldap.DN_FORMAT_LDAPV3)
         email = "{0}@{2}.{3}".format(*[x.split('=')[-1] for x in dn])
     else:
@@ -69,9 +72,12 @@ class OpenShiftSecurity(AirflowSecurityManager):
             )
             data = me.data
             print("User info from OCP: {0}".format(data))
+            # comes from: https://github.com/dpgaspar/Flask-AppBuilder/blob/master/flask_appbuilder/security/sqla/manager.py#L185
             return {
                 "username": "openshift_" + data.get("metadata").get("name"),
-                "email" : get_email_from_identity(data.get("identities")[0]) 
+                "email" : get_email_from_identity(data.get("identities")[0]),
+                "first_name" : data.get("fullName", "").split(" ")[0],
+                "last_name" : " ".join(data.get("fullName", "").split(" ")[1:])
             }
         else:
             return {}
