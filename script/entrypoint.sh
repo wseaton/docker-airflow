@@ -89,15 +89,18 @@ configure_auth() {
   fi
 }
 
-if [ "$AIRFLOW__CORE__EXECUTOR" != "SequentialExecutor" ]; then
-  if [ "$DB_TYPE" = "mysql" ];then
-    AIRFLOW__CORE__SQL_ALCHEMY_CONN="mysql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
-    AIRFLOW__CELERY__RESULT_BACKEND="db+mysql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
-  else
-    AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
-    AIRFLOW__CELERY__RESULT_BACKEND="db+postgresql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
-  fi
-  wait_for_port "$DB_TYPE" "$SQL_HOST" "$SQL_PORT"
+# allow for hotswapping of the db connection
+if [[ -z $AIRFLOW__CORE__SQL_ALCHEMY_CONN ]]; then 
+ if [ "$AIRFLOW__CORE__EXECUTOR" != "SequentialExecutor" ]; then
+   if [ "$DB_TYPE" = "mysql" ];then
+     AIRFLOW__CORE__SQL_ALCHEMY_CONN="mysql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
+     AIRFLOW__CELERY__RESULT_BACKEND="db+mysql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
+   else
+     AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
+     AIRFLOW__CELERY__RESULT_BACKEND="db+postgresql://$SQL_USER:$SQL_PASSWORD@$SQL_HOST:$SQL_PORT/$SQL_DB"
+   fi
+   wait_for_port "$DB_TYPE" "$SQL_HOST" "$SQL_PORT"
+ fi
 fi
 echo "export AIRFLOW__CORE__SQL_ALCHEMY_CONN=${AIRFLOW__CORE__SQL_ALCHEMY_CONN}" >> ~/.profile
 
