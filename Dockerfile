@@ -1,4 +1,4 @@
-# VERSION 1.10.12
+# VERSION 1.10.14
 # AUTHOR: Matthieu "Puckel_" Roisil
 # DESCRIPTION: Basic Airflow container
 # BUILD: docker build --rm -t puckel/docker-airflow .
@@ -12,7 +12,7 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV TERM linux
 
 # Airflow
-ARG AIRFLOW_VERSION=1.10.12
+ARG AIRFLOW_VERSION=1.10.14
 ARG AIRFLOW_USER_HOME=/usr/local/airflow
 ARG AIRFLOW_DEPS=""
 ARG PYTHON_DEPS=""
@@ -71,6 +71,8 @@ RUN set -ex \
         kubernetes==11.0.0 \
         openshift==0.11.2 \
         redis==3.2 \
+        SQLAlchemy==1.3.23 \
+        Flask-SQLAlchemy==2.4.4 \
     && if [ -n "${PYTHON_DEPS}" ]; then pip install ${PYTHON_DEPS}; fi \
     && apt-get purge --auto-remove -yqq $buildDeps \
     && apt-get autoremove -yqq --purge \
