@@ -72,7 +72,7 @@ RUN set -ex \
         openshift==0.11.2 \
         redis==3.2 \
         SQLAlchemy==1.3.23 \
-        Flask-SQLAlchemy==2.4.4
+        Flask-SQLAlchemy==2.4.4 \
     && if [ -n "${PYTHON_DEPS}" ]; then pip install ${PYTHON_DEPS}; fi \
     && apt-get purge --auto-remove -yqq $buildDeps \
     && apt-get autoremove -yqq --purge \
