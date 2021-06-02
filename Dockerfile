@@ -64,7 +64,7 @@ RUN set -ex \
         pyOpenSSL \
         ndg-httpsclient \
         pyasn1 \
-        apache-airflow[crypto,celery,postgres,hive,jdbc,mysql,ssh${AIRFLOW_DEPS:+,}${AIRFLOW_DEPS}]==${AIRFLOW_VERSION} \
+        apache-airflow[crypto,celery,postgres,hive,jdbc,mysql,s3,ssh${AIRFLOW_DEPS:+,}${AIRFLOW_DEPS}]==${AIRFLOW_VERSION} \
         oauthlib==2.1.0 \
         requests-oauthlib==1.1.0 \
         Flask-OAuthlib==0.9.5 \
