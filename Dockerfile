@@ -73,6 +73,7 @@ RUN set -ex \
         redis==3.2 \
         SQLAlchemy==1.3.23 \
         Flask-SQLAlchemy==2.4.4 \
+        fiscalyear==0.3.2 \
     && if [ -n "${PYTHON_DEPS}" ]; then pip install ${PYTHON_DEPS}; fi \
     && apt-get purge --auto-remove -yqq $buildDeps \
     && apt-get autoremove -yqq --purge \
